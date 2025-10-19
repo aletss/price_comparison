@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Price Comparison</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .fraction-block {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .division-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 140px;
+        }
+
+        .dollar-sign {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+            font-size: 20px;
+            font-weight: bold;
+            pointer-events: none;
+            user-select: none;
+            z-index: 1;
+        }
+
+        .fraction-input {
+            width: 140px;
+            padding: 12px 12px 12px 30px;
+            font-size: 20px;
+            text-align: left;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            transition: border-color 0.3s;
+        }
+
+        .fraction-input.numerator {
+            text-align: center;
+            padding: 12px;
+        }
+
+        .fraction-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .division-line {
+            width: 140px;
+            height: 2px;
+            background: #333;
+        }
+
+        .result {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+
+        .btn-plus {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-plus:hover {
+            background: #45a049;
+        }
+
+        .btn-minus {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-minus:hover {
+            background: #da190b;
+        }
+
+        .btn-clean {
+            background: #f44336;
+            color: white;
+            width: 100%;
+            margin-top: 20px;
+            padding: 15px;
+            font-size: 18px;
+        }
+
+        .btn-clean:hover {
+            background: #da190b;
+        }
+
+        .highlight-best {
+            background: rgba(76, 175, 80, 0.2);
+            border: 3px solid #4CAF50;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        @media (max-width: 600px) {
+            .fraction-block {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .fraction-input {
+                width: 140px;
+                font-size: 18px;
+            }
+
+            .input-wrapper {
+                width: 140px;
+            }
+
+            .dollar-sign {
+                font-size: 18px;
+                left: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Price Comparison</h1>
+        <div id="fractionsContainer"></div>
+        <button class="btn btn-clean" onclick="cleanAll()">CLEAN</button>
+    </div>
+
+    <script>
+        let fractions = [];
+        let idCounter = 0;
+
+        function createFractionBlock() {
+            const id = idCounter++;
+            fractions.push({ id, numerator: 0, denominator: 1 });
+            renderFractions();
+        }
+
+        function removeFractionBlock(id) {
+            if (fractions.length > 1) {
+                fractions = fractions.filter(f => f.id !== id);
+                renderFractions();
+            }
+        }
+
+        function updateFraction(id, field, value) {
+            const fraction = fractions.find(f => f.id === id);
+            if (fraction) {
+                fraction[field] = parseFloat(value) || 0;
+                if (field === 'denominator' && fraction.denominator === 0) {
+                    fraction.denominator = 1;
+                }
+                renderFractions();
+            }
+        }
+
+        function calculateResult(numerator, denominator) {
+            if (denominator === 0) return 0;
+            return numerator / denominator;
+        }
+
+        function renderFractions() {
+            const container = document.getElementById('fractionsContainer');
+            
+            // Calculate results and find the maximum
+            const results = fractions.map(f => ({
+                id: f.id,
+                value: calculateResult(f.numerator, f.denominator)
+            }));
+            
+            const maxResult = Math.max(...results.map(r => r.value));
+            
+            // Check if container is empty or needs full render
+            if (container.children.length !== fractions.length) {
+                container.innerHTML = fractions.map(f => {
+                    const result = calculateResult(f.numerator, f.denominator);
+                    const isBest = result === maxResult && maxResult !== 0;
+                    
+                    return `
+                        <div class="fraction-block ${isBest ? 'highlight-best' : ''}" data-id="${f.id}">
+                            <div class="division-container">
+                                <input 
+                                    type="number" 
+                                    class="fraction-input numerator" 
+                                    data-id="${f.id}"
+                                    data-field="numerator"
+                                    value="${f.numerator}"
+                                    oninput="updateFraction(${f.id}, 'numerator', this.value)"
+                                    placeholder="0"
+                                >
+                                <div class="division-line"></div>
+                                <div class="input-wrapper">
+                                    <span class="dollar-sign">$</span>
+                                    <input 
+                                        type="number" 
+                                        class="fraction-input" 
+                                        data-id="${f.id}"
+                                        data-field="denominator"
+                                        value="${f.denominator}"
+                                        oninput="updateFraction(${f.id}, 'denominator', this.value)"
+                                        placeholder="0"
+                                    >
+                                </div>
+                            </div>
+                            <div class="result" data-id="${f.id}">= ${result.toFixed(4)}</div>
+                            <div class="controls">
+                                <button class="btn btn-plus" onclick="createFractionBlock()">+</button>
+                                <button class="btn btn-minus" onclick="removeFractionBlock(${f.id})">−</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                // Update only results and highlights without re-rendering inputs
+                fractions.forEach(f => {
+                    const result = calculateResult(f.numerator, f.denominator);
+                    const isBest = result === maxResult && maxResult !== 0;
+                    const block = container.querySelector(`.fraction-block[data-id="${f.id}"]`);
+                    
+                    if (block) {
+                        // Update highlight
+                        if (isBest) {
+                            block.classList.add('highlight-best');
+                        } else {
+                            block.classList.remove('highlight-best');
+                        }
+                        
+                        // Update result display
+                        const resultDiv = block.querySelector(`.result[data-id="${f.id}"]`);
+                        if (resultDiv) {
+                            resultDiv.textContent = `= ${result.toFixed(4)}`;
+                        }
+                    }
+                });
+            }
+        }
+
+        function cleanAll() {
+            // Reset to only 2 fractions with default values
+            fractions = [];
+            idCounter = 0;
+            createFractionBlock();
+            createFractionBlock();
+        }
+
+        // Initialize with two fraction blocks
+        createFractionBlock();
+        createFractionBlock();
+    </script>
+</body>
+</html>
